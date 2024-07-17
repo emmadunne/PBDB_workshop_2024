@@ -1,8 +1,9 @@
+#NOTES
 #Direct download from URL
 #Cleaning (taxonomic and intervals)
 #Structure/biases
 
-#Copied from previous tutorial - looks at URL download, writing and reading
+###Script 1: Copied from previous tutorial - looks at URL download, writing and reading###
 
 ################################################################################
 #                                                                              #
@@ -231,3 +232,101 @@ count(RawData, cc)
 # Database occurrence dataset, and highlighted some potential issues. Next we
 # will discuss some approached for cleaning up such a dataset ready for
 # analysis.
+
+###Script 2: These are examples of the manual cleaning steps I usually conduct.###
+
+#setwd("#####")
+
+#Load packages
+library(tidyverse)
+library(raster)
+library(rgdal)
+
+#Create a vector giving the chronological order of stages
+stages <- c("Roadian", "Wordian", "Capitanian", "Wuchiapingian", "Changhsingian", "Induan", "Olenekian",
+            "Anisian", "Ladinian")
+
+#Create a vector giving the chronological order of substages
+substages <- c("Roadian", "Wordian", "Capitanian", "Wuchiapingian", "Changhsingian", "Griesbachian",
+               "Dienerian", "Smithian", "Spathian", "Aegean", "Bithynian", "Pelsonian", "Illyrian",
+               "Fassanian", "Longobardian")
+
+
+#Read in dataset
+fossils <- read_csv("data/PT_brach_biv.csv")
+glimpse(fossils)
+
+#Add filters to remove lacustrine occurrences
+#fluvial  <- c("fluvial-lacustrine indet.", "fluvial indet.", "lacustrine - large",
+#              "lacustrine delta front", "lacustrine indet.", "pond", "terrestrial indet.")
+#fossils <- filter(fossils, !environment %in% fluvial)
+
+#Add filters to remove uncertain IDs
+#fossils <- fossils %>% filter(!str_detect(identified_name, " cf")) %>%
+# filter(!str_detect(identified_name, " aff")) %>% filter(!str_detect(identified_name, '"')) %>%
+# filter(!str_detect(identified_name, " \\?")) %>% filter(!str_detect(identified_name, "ex gr."))
+
+
+###Bin occurrences by stage and substage###
+#Create columns for stage and substage designation
+fossils$stage_bin <- NA; fossils$substage_bin <- NA
+
+#For each occurrence
+for (i in 1:nrow(fossils)){
+  #If occurrence is dated to a single stage, allocate it to that bin
+  if (fossils$early_interval[i] %in% stages & is.na(fossils$late_interval[i])){
+    fossils$stage_bin[i] <- fossils$early_interval[i]}
+  #If occurrence is dated to a single substage, allocate it to that bin
+  if (fossils$early_interval[i] %in% substages & is.na(fossils$late_interval[i])){
+    fossils$substage_bin[i] <- fossils$early_interval[i]}
+  #Conduct substage processing specific to interval of interest (here Triassic)
+  #If occurrence is dated to Griesbachian/Dienerian or both, it is Induan
+  if (fossils$early_interval[i] %in% substages[6:7] & is.na(fossils$late_interval[i])){
+    fossils$stage_bin[i] <- "Induan"}
+  if (fossils$early_interval[i] == substages[6] & !is.na(fossils$late_interval[i])){
+    if(fossils$late_interval[i] == substages[7]){fossils$stage_bin[i] <- "Induan"}}
+  #If occurrence is dated to Smithian/Spathian or both, it is Olenekian
+  if (fossils$early_interval[i] %in% substages[8:9] & is.na(fossils$late_interval[i])){
+    fossils$stage_bin[i] <- "Olenekian"}
+  if (fossils$early_interval[i] == substages[8] & !is.na(fossils$late_interval[i])){
+    if(fossils$late_interval[i] == substages[9]){fossils$stage_bin[i] <- "Olenekian"}}
+  #If occurrence is dated to Aegean/Bithynian/Pelsonian/Illyrian or a combination, it is Anisian
+  if (fossils$early_interval[i] %in% substages[10:13] & is.na(fossils$late_interval[i])){
+    fossils$stage_bin[i] <- "Anisian"}
+  if (fossils$early_interval[i] %in% substages[10:13] & !is.na(fossils$late_interval[i])){
+    if(fossils$late_interval[i] %in% substages[11:13]){fossils$stage_bin[i] <- "Anisian"}}
+  #If occurrence is dated to Fassanian/Longobardian or both, it is Ladinian
+  if (fossils$early_interval[i] %in% substages[14:15] & is.na(fossils$late_interval[i])){
+    fossils$stage_bin[i] <- "Ladinian"}
+  if (fossils$early_interval[i] == substages[14] & !is.na(fossils$late_interval[i])){
+    if(fossils$late_interval[i] == substages[15]){fossils$stage_bin[i] <- "Ladinian"}}
+}
+
+#Remove occurrences undated at stage resolution
+fossils <- filter(fossils, !is.na(stage_bin))
+
+
+###Retain uncatalogued species###
+#If an occurrence is to species level but the species hasn't been entered into the database, convert
+# its accepted name/rank to the species rather than the genus
+for (j in 1:nrow(fossils)){
+  if(!is.na(fossils$difference[j]))
+    (if (fossils$difference[j] == "species not entered"){
+      fossils$accepted_name[j] <- fossils$identified_name[j]
+      fossils$accepted_rank[j] <- "species"})
+}
+
+
+###Pool collections to produce unique spatio-temporal units###
+#Collapse together collections which have the same time bins and coordinates to 2dp (and are likely
+#  different beds from the same locality)
+fossils <- mutate(fossils, lng = round(lng, digits = 2), lat = round(lat, digits = 2))
+unique_points <- fossils %>%
+  dplyr::select(collection_no_pooled = collection_no, lng, lat, stage_bin, substage_bin) %>%
+  distinct(lng, lat, stage_bin, substage_bin, .keep_all = T)
+fossils <- left_join(fossils, unique_points, by = c("lng", "lat", "stage_bin", "substage_bin"))
+
+
+###Remove synonymy repeats (combinations of the same *pooled* collection no. AND accepted name)###
+fossils <- distinct(fossils, accepted_name, collection_no_pooled, .keep_all = T)
+
