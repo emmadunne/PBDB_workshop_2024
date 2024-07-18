@@ -22,8 +22,10 @@ utils::install.packages("dplyr", dependencies = TRUE)
 ## Packages used in this session
 ## (be sure to install them first!)
 library(tidyverse) 
-library(divDyn)
 library(sepkoski)
+library(rgplates)
+library(divDyn)
+library(geojsonsf)
 
 
 ## Clear R's environment before starting so you're working with a clean slate:
