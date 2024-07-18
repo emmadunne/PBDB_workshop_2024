@@ -69,7 +69,7 @@ write_csv(occ_data_raw, "./data/PBDB_pseudos_24_08_23.csv")
 ## Let's go through step by step and remove some of the noise from the data we just downlaoded
 
 ## Remove 'super-generic' identifications, so that we only retain occurrences to species- and genus-level
-occ_data_raw2 <- filter(occ_data_raw, (identified_rank %in% c("species","genus")))
+occ_data_raw2 <- filter(occ_data_raw, (accepted_rank %in% c("species","genus")))
 
 ## Remove occurrences with “aff.”, “ex. gr.”, “sensu lato”, “informal”, or quotation marks in identified names
 occ_data_raw3 <- occ_data_raw2 %>% 

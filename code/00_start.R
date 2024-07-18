@@ -15,7 +15,7 @@
 
 
 ## We will be using dplyr to manipulate our data, so we need to install them.
-## We cna do this with code like this or via the main menu in RStudio:
+## We can do this with code like this or via the main menu in RStudio:
 utils::install.packages("dplyr", dependencies = TRUE)
 
 
@@ -26,6 +26,7 @@ library(sepkoski)
 library(rgplates)
 library(divDyn)
 library(geojsonsf)
+library(viridis)
 
 
 ## Clear R's environment before starting so you're working with a clean slate:
