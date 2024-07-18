@@ -90,8 +90,17 @@ occ_data <- distinct(occ_data_raw6, accepted_name, collection_no, .keep_all = TR
 length(unique(occ_data_raw$occurrence_no)) # start
 length(unique(occ_data$occurrence_no)) # finish
 
-## If you were publishing with these data, you would also need to check the dataset for
-## errors in taxonomy, stratigraphy, geography, etc. too.
+## Filter to a species-only dataset:
+occ_data_sp <- filter(occ_data, (accepted_rank == "species"))
+
+
+## Save copies of these cleaned datasets as .csv files - Note: your file path might differ!
+write_csv(occ_data_sp, "./data/occ_data_sp_cleaned.csv")
+
+
+## CAUTION:
+## If you were publishing with these data, you would also need to check the dataset
+##    for errors in taxonomy, stratigraphy, geography, etc. too.
 
 
 

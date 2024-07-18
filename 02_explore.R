@@ -25,7 +25,13 @@
 ## Let's start by simply exploring the cleaned dataset
 
 ## How many (valid) species do we have?
+length(unique(occ_data_sp$accepted_name))
 
+## What species have the greatest number of occurrences?
+n_occs <- occ_data_sp %>% 
+  count(accepted_name) %>% 
+  arrange(desc(n))
+n_occs
 
 
 
